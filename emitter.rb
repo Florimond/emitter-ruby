@@ -2,29 +2,51 @@ require 'paho-mqtt'
 
 class Emitter
 
+
+
   #@connect
   #attr_accessor :on_message
 
   # For functions
   def on_connect=(callback)
-    @on_connect = callback if callback.is_a?(Proc)
+    #@on_connect = callback if callback.is_a?(Proc)
+    @mqtt.on_connack = callback
   end
-
   # For blocks
   def on_connect(&block)
-    @on_connect = block if block_given?
-    @on_connect #????
+    @mqtt.on_connack(&block)
+    #@on_connect = block if block_given?
+    #@on_connect #????
+  end
+
+  def initialize()
+    @mqtt = PahoMqtt::Client.new
+    #@mqtt.on_connack do
+    #  puts("connack")
+    #end
+  end
+
+  def connect()
+    @mqtt.connect 'iot.eclipse.org', 1883
+  end
+
+  def disconnect()
+    @mqtt.disconnect()
   end
 end
+
 
 emitter = Emitter.new()
 emitter.on_connect do
   puts "Emitter connected"
 end
+emitter.connect()
 
 #emitter.connect_handler.to_proc.call()
 #emitter.on_message.call()
 
+
+exit
 ### Create a simple client with default attributes
 client = PahoMqtt::Client.new
 
