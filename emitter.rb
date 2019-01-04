@@ -1,4 +1,5 @@
-require 'paho-mqtt'
+require "paho-mqtt"
+require "json"
 
 class Emitter
   # For functions
@@ -45,9 +46,15 @@ class Emitter
 
   def initialize()
     @mqtt = PahoMqtt::Client.new
+
     @mqtt.on_message do |message|
-      @on_message.call(message)
+      if message.topic.start_with?("presence")
+        @on_presence
+      else
+        @on_message.call(message)
+      end
     end
+
   end
 
   def connect()
@@ -88,5 +95,10 @@ class Emitter
   def unsubscribe(key, channel)
     topic = self.format_channel(key, channel)
     @mqtt.unsubscribe(topic)
+  end
+
+  def presence(key, channel)
+    parameters = {"key" => key, "channel" => channel}
+    @mqtt.publish("emitter/presence/", JSON.generate(parameters), false, 0)
   end
 end

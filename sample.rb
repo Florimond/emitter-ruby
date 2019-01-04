@@ -5,12 +5,12 @@ emitter = Emitter.new()
 
 root = TkRoot.new do
   title("Emitter Ruby sample")
-  minsize(450, 450)
+  minsize(600, 600)
 end
 
 text = TkText.new(root) do
-   width(50)
-   height(10)
+   width(72)
+   height(18)
    pack("side" => "bottom", "pady" => [0, 10])
 end
 
@@ -40,6 +40,7 @@ TkButton.new(root, "width" => 50) do
 end
 TkButton.new(root, "width" => 50) do
   text("Presence")
+  command proc { emitter.presence(emitter_key.value, channel.value) }
   pack()
 end
 TkButton.new(root, "width" => 50) do
@@ -64,7 +65,11 @@ end
 
 emitter.on_message do |message|
   puts "Message recieved on topic: #{message.topic}\n>>> #{message.payload}"
-  text.insert(1.0, "Message recieved on topic: #{message.topic}\n>>> #{message.payload}\n")
+  text.insert(1.0, "Message received on topic: #{message.topic}\n>>> #{message.payload}\n")
+end
+emitter.on_presence do |message|
+  puts "Presence message received on topic: #{message.topic}\n>>> #{message.payload}"
+  text.insert(1.0, "Presence message received on topic: #{message.topic}\n>>> #{message.payload}\n")
 end
 emitter.on_connect do
   puts "Connected"
