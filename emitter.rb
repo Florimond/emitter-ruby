@@ -1,15 +1,8 @@
 require 'paho-mqtt'
 
 class Emitter
-
-
-
-  #@connect
-  #attr_accessor :on_message
-
   # For functions
   def on_connect=(callback)
-    #@on_connect = callback if callback.is_a?(Proc)
     @mqtt.on_connack = callback
   end
   # For blocks
@@ -19,78 +12,81 @@ class Emitter
     #@on_connect #????
   end
 
+  def on_subscribe=(callback)
+    @mqtt.on_suback = callback
+  end
+  def on_subscribe(&block)
+    @mqtt.on_suback(&block)
+  end
+
+  def on_unsubscribe=(callback)
+    @mqtt.on_unsuback = callback
+  end
+  def on_unsubscribe(&block)
+    @mqtt.on_unsuback(&block)
+  end
+
+  def on_message=(callback)
+    #@mqtt.on_message = callback
+    @on_message = callback
+  end
+  def on_message(&block)
+    #@mqtt.on_message(&block)
+    @on_message = block if block_given?
+  end
+
+  def on_presence=(callback)
+    @on_presence = callback
+  end
+  def on_presence(&block)
+    @on_presence = block if block_given?
+  end
+
+
   def initialize()
     @mqtt = PahoMqtt::Client.new
-    #@mqtt.on_connack do
-    #  puts("connack")
-    #end
+    @mqtt.on_message do |message|
+      @on_message.call(message)
+    end
   end
 
   def connect()
-    @mqtt.connect 'iot.eclipse.org', 1883
+
+    @mqtt.connect('api.emitter.io', 8080)
   end
 
   def disconnect()
     @mqtt.disconnect()
   end
+
+  #private
+  def format_channel(key, channel, options=nil)
+    # Prefix with the key.
+    formatted = key.end_with?("/") ? key + channel : key + "/" + channel
+    # Add trailing slash.
+    formatted = formatted + "/" if !formatted.end_with?("/")
+    # Add options.
+    formatted = formatted + "?" + options.map{|k,v| "#{k}=#{v}"}.join('&') if options #and options.keys.count > 0
+    formatted
+  end
+
+  def publish(key, channel, message, ttl=nil)
+    options = {}
+    options[:ttl] = ttl if ttl != nil
+    topic = self.format_channel(key, channel, options)
+    #puts(topic)
+    @mqtt.publish(topic, "Hello there!", false, 0)
+  end
+
+  def subscribe(key, channel, last=nil)
+    options = {}
+    options[:last] = last if last != nil
+    topic = self.format_channel(key, channel, options)
+    @mqtt.subscribe([topic, 0])
+  end
+
+  def unsubscribe(key, channel)
+    topic = self.format_channel(key, channel)
+    @mqtt.unsubscribe(topic)
+  end
 end
-
-
-emitter = Emitter.new()
-emitter.on_connect do
-  puts "Emitter connected"
-end
-emitter.connect()
-
-#emitter.connect_handler.to_proc.call()
-#emitter.on_message.call()
-
-
-exit
-### Create a simple client with default attributes
-client = PahoMqtt::Client.new
-
-### Register a callback on message event to display messages
-message_counter = 0
-client.on_message do |message|
-  puts "Message recieved on topic: #{message.topic}\n>>> #{message.payload}"
-  message_counter += 1
-end
-
-### Register a callback on suback to assert the subcription
-waiting_suback = true
-client.on_suback do
-  waiting_suback = false
-  puts "Subscribed"
-end
-
-### Register a callback for puback event when receiving a puback
-waiting_puback = true
-client.on_puback do
-  waiting_puback = false
-  puts "Message Acknowledged"
-end
-
-### Connect to the eclipse test server on port 1883 (Unencrypted mode)
-client.connect 'iot.eclipse.org', 1883
-
-### Subscribe to a topic
-client.subscribe ['/paho/ruby/test', 2]
-
-### Waiting for the suback answer and excute the previously set on_suback callback
-while waiting_suback do
-  sleep 0.001
-end
-
-### Publlish a message on the topic "/paho/ruby/test" with "retain == false" and "qos == 1"
-client.publish "/paho/ruby/test", "Hello there!", false, 1
-
-while waiting_puback do
-  sleep 0.001
-end
-
-### Waiting to assert that the message is displayed by on_message callback
-sleep 1
-
-### Calling an explicit disconnect
-client.disconnect
