@@ -51,8 +51,10 @@ class Emitter
   end
 
 
-  def initialize()
-    @mqtt = PahoMqtt::Client.new
+  def initialize(parameters)
+    parameters[:host] = "api.emitter.io" if !parameters.key?(:host)
+    parameters[:port] = "8080" if !parameters.key?(:port)
+    @mqtt = PahoMqtt::Client.new(parameters)
 
     @mqtt.on_message do |message|
       if message.topic.start_with?("presence")
@@ -67,7 +69,7 @@ class Emitter
   end
 
   def connect()
-    @mqtt.connect('api.emitter.io', 8080)
+    @mqtt.connect()#'api.emitter.io', 8080)
   end
 
   def disconnect()
