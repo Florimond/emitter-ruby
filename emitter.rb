@@ -43,6 +43,13 @@ class Emitter
     @on_presence = block if block_given?
   end
 
+  def on_keygen=(callback)
+    @on_keygen = callback
+  end
+  def on_keygen(&block)
+    @on_keygen = block if block_given?
+  end
+
 
   def initialize()
     @mqtt = PahoMqtt::Client.new
@@ -50,6 +57,8 @@ class Emitter
     @mqtt.on_message do |message|
       if message.topic.start_with?("presence")
         @on_presence
+      elsif message.topic.start_with?("keygen")
+        @on_keygen
       else
         @on_message.call(message)
       end
@@ -58,7 +67,6 @@ class Emitter
   end
 
   def connect()
-
     @mqtt.connect('api.emitter.io', 8080)
   end
 
@@ -100,5 +108,10 @@ class Emitter
   def presence(key, channel)
     parameters = {"key" => key, "channel" => channel}
     @mqtt.publish("emitter/presence/", JSON.generate(parameters), false, 0)
+  end
+
+  def keygen(key, channel)
+    parameters = {"key" => key, "channel" => channel}
+    @mqtt.publish("emitter/keygen/", JSON.generate(parameters), false, 0)
   end
 end
